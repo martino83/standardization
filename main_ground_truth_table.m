@@ -135,24 +135,3 @@ for vendor = {'Hitachi Aloka Medical,Ltd','GE Vingmed Ultrasound','ESAOTE','Phil
     xlswrite(fname,A,vendor{1})
 end
 
-
-
-
-% %%% check for nan strains in simulations
-% vendor = 'GE Vingmed Ultrasound';
-% noise = 0;
-% type = 'global'; % global
-% timing = 'ES'; % PeakS, PeakG, PeakP. Only is type = segmental
-% segment_id = 'basSept';
-%
-% for view = {'A4C','A3C','A2C'}
-%     for seq_id = {'normal','ladprox','laddist','rca','lcx'}
-%         for layer = {'endo','mid'}
-%             val_gt = get_ground_truth(vendor,seq_id{1},view{1},type,layer{1},timing,segment_id);
-%             if isnan(val_gt)
-%                 disp([view{1},'-',seq_id{1},'-',layer{1},'-',num2str(val_gt)])
-%             end
-%         end
-%     end
-% end
-

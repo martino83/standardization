@@ -43,7 +43,7 @@ switch view % establish correspondence between segment number and label
             'basPost'};
         
     otherwise
-        disp('cacca')
+        error('no view with this name')
         
 end
 
