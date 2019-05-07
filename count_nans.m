@@ -27,11 +27,14 @@ for vendor = vendors
                 zp1 = squeeze(gt.X_gt(:,3,n));
                 
                 if (any(isnan([xp1(:), zp1(:)])) )
-                    savename = 
+                    f = figure;
+                    savename = ['tmp/',vendor{1},'_', model{1}, '_', view{1}, '_frame', num2str(n),'.png'];
                     plot(x0, z0, 'ko'); hold on;
                     id = isnan(xp1) | isnan(zp1);
                     plot(x0(id), z0(id), 'ko', 'MarkerFaceColor','r'); hold off;
                     title({vendor{1}, [model{1}, ' ', view{1}], ['frame ', num2str(n)]});
+                    saveas(f, savename);
+                    close(f)
                 end
                 
                 num_points = num_points + numel(xp1);
