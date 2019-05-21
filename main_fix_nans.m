@@ -191,6 +191,9 @@ for vendor_id = 1:numel(vendors)
                     if (any(isnan(t))) % go back to frame and and squeeze a little more
                         %                         nan_ids_frame0 = find(isnan(t)); % points to adjust
                         disp('point became nan: go back to frame 0.');
+                        
+                        % Modified by Sandro: to avoid continue shrinking points that are so far correct, change list of nans to currently detected NaNs
+                        nan_ids_frame0 = ind2sub([nl,nr],find(isnan(t)));
                         break;
                     end
 
