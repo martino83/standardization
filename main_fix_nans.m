@@ -123,84 +123,89 @@ for vendor_id = 1:numel(vendors)
             % new ground truth without nans
             X_gt = zeros(numel(xp0),3,nframes);
             
-            for id_nan_point = 1:numel(nan_ids_frame0)
-                count_trials = 0;
-                nan_fix_failed = false;
+            count_trials = 0;
+            nan_fix_failed = false;
+
+            w = 0.95; % compression factor (nan points are moved inwards towards mid myocardium, w=1 no compression, w=0 all layers merge)).
+            done_fixing_nans = false;
+
+            while not(done_fixing_nans) && not(nan_fix_failed)
+
+                count_trials = count_trials+1;
                 
-                w = 0.95; % compression factor (nan points are moved inwards towards mid myocardium, w=1 no compression, w=0 all layers merge)).
-                done_fixing_nans = false;
-                
-                while not(done_fixing_nans) && not(nan_fix_failed)
-                    
-                    count_trials = count_trials+1;
+                % Modified by Sandro -> shrink all NaN points, and only recompute baricentric coordinates and propagate afterwards. Otherwise, you change one
+                % of them, but then test whether there is any NaN after recomputing and propagating (which exist, since you did not changed the others).
+                for id_nan_point = 1:numel(nan_ids_frame0)
                     [point_id, layer_id] = ind2sub([nl,nr],nan_ids_frame0(id_nan_point));
-                    
+
                     xl = xp0(point_id,:);
                     zl = zp0(point_id,:);
                     dx = diff(xl);
                     dz = diff(zl);
-                    
+
                     fprintf('adjusting nans, iter: w: %f\n',w);
                     x_new = [xl(1),xl(1) + cumsum(w * dx)];
                     z_new = [zl(1),zl(1) + cumsum(w * dz)];
-                    
+    
                     if layer_id == 1
                         x_new = x_new + (xl(end) - x_new(end));
                         z_new = z_new + (zl(end) - z_new(end));
                     end
-                    
+
                     % redistribute distance
                     xp0(point_id,:) = x_new;
                     zp0(point_id,:) = z_new;
-                    X_gt(:,:,1) = [xp0(:),yp0(:),zp0(:)];
-                    
-                    % baricentric coordinates of nan points
-                    [t,BC] = pointLocation(TR0,[xp0(:),yp0(:),zp0(:)]);
-                    
-                    % -- propagate points
-                    
-                    xp = xp0;
-                    yp = yp0;
-                    zp = zp0;
-                    
-                    for id_frame = 2:nframes
-                        disp([num2str(id_frame),'/',num2str(nframes)])
-                        
-                        % mesh
-                        x_meshii = x_mesh_trans(:,id_frame);
-                        y_meshii = y_mesh_trans(:,id_frame);
-                        z_meshii = z_mesh_trans(:,id_frame);
-                        TR = triangulation(Tri,[x_meshii(:),y_meshii(:),z_meshii(:)]);
-                        
-                        % propagate in 3d
-                        PC = barycentricToCartesian(TR,t,BC);
-                        
-                        % -- project to slice
-                        xp = PC(:,1);
-                        yp = zeros(size(xp));
-                        zp = PC(:,3);
-                        
-                        % -- rcompute bari coord
-                        [t,BC] = pointLocation(TR,[xp,yp,zp]);
-                        
-                        if (any(isnan(t))) % go back to frame and and squeeze a little more
-                            %                         nan_ids_frame0 = find(isnan(t)); % points to adjust
-                            disp('point became nan: go back to frame 0.');
-                            break;
-                        end
-                        
-                        X_gt(:,:,id_frame) = [xp(:),yp(:),zp(:)];
-                        if (id_frame == nframes)
-                            done_fixing_nans = true;
-                        end
+                end
+                
+                X_gt(:,:,1) = [xp0(:),yp0(:),zp0(:)];
+
+                % baricentric coordinates of nan points
+                [t,BC] = pointLocation(TR0,[xp0(:),yp0(:),zp0(:)]);
+
+                % -- propagate points
+
+                xp = xp0;
+                yp = yp0;
+                zp = zp0;
+
+                for id_frame = 2:nframes
+                    disp([num2str(id_frame),'/',num2str(nframes)])
+
+                    % mesh
+                    x_meshii = x_mesh_trans(:,id_frame);
+                    y_meshii = y_mesh_trans(:,id_frame);
+                    z_meshii = z_mesh_trans(:,id_frame);
+                    TR = triangulation(Tri,[x_meshii(:),y_meshii(:),z_meshii(:)]);
+
+                    % propagate in 3d
+                    PC = barycentricToCartesian(TR,t,BC);
+
+                    % -- project to slice
+                    xp = PC(:,1);
+                    yp = zeros(size(xp));
+                    zp = PC(:,3);
+
+                    % -- rcompute bari coord
+                    [t,BC] = pointLocation(TR,[xp,yp,zp]);
+
+                    if (any(isnan(t))) % go back to frame and and squeeze a little more
+                        %                         nan_ids_frame0 = find(isnan(t)); % points to adjust
+                        disp('point became nan: go back to frame 0.');
+                        break;
                     end
-                    if (count_trials == max_trials)
+
+                    X_gt(:,:,id_frame) = [xp(:),yp(:),zp(:)];
+                    if (id_frame == nframes)
                         done_fixing_nans = true;
-                        nan_fix_failed = true;
-                        disp(['COULD NOT FIX NANS FOR ' vendor '_' view_name '_' seq])
-                        fprintf(fid, 'COULD NOT FIX %s %s %s\n', vendor, view_name, seq);
                     end
                 end
+                if (count_trials == max_trials)
+                    done_fixing_nans = true;
+                    nan_fix_failed = true;
+                    disp(['COULD NOT FIX NANS FOR ' vendor '_' view_name '_' seq])
+                    fprintf(fid, 'COULD NOT FIX %s %s %s\n', vendor, view_name, seq);
+                end
+                
                 if nan_fix_failed
                     break; % go to next sequence
                 end
