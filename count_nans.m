@@ -2,10 +2,14 @@ clc
 clear
 addpath src
 
+
+save_plots = false;
+
 vendors = {'Hitachi Aloka Medical,Ltd','TOSHIBA_MEC_US','ESAOTE',...
     'SAMSUNG MEDISON CO','Siemens','Philips Medical Systems','GE Vingmed Ultrasound'};
 views = {'A4C','A3C','A2C'};
 models = {'normal','ladprox','laddist','lcx','rca'};
+
 
 for vendor = vendors
     num_nans = 0;
@@ -27,14 +31,19 @@ for vendor = vendors
                 zp1 = squeeze(gt.X_gt(:,3,n));
                 
                 if (any(isnan([xp1(:), zp1(:)])) )
-                    f = figure;
-                    savename = ['tmp/',vendor{1},'_', model{1}, '_', view{1}, '_frame', num2str(n),'.png'];
-                    plot(x0, z0, 'ko'); hold on;
-                    id = isnan(xp1) | isnan(zp1);
-                    plot(x0(id), z0(id), 'ko', 'MarkerFaceColor','r'); hold off;
-                    title({vendor{1}, [model{1}, ' ', view{1}], ['frame ', num2str(n)]});
-                    saveas(f, savename);
-                    close(f)
+                    
+                    if (save_plots)
+                        f = figure;
+                        savename = ['tmp/',vendor{1},'_', model{1}, '_', view{1}, '_frame', num2str(n),'.png'];
+                        plot(x0, z0, 'ko'); hold on;
+                        id = isnan(xp1) | isnan(zp1);
+                        plot(x0(id), z0(id), 'ko', 'MarkerFaceColor','r'); hold off;
+                        title({vendor{1}, [model{1}, ' ', view{1}], ['frame ', num2str(n)]});
+                        saveas(f, savename);
+                        close(f)
+                    end
+                    
+                    disp([vendor{1}, model{1}, ' ', view{1}, 'frame ', num2str(n)])
                 end
                 
                 num_points = num_points + numel(xp1);
